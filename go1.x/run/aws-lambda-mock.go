@@ -18,7 +18,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
-	"syscall"
+	_ "syscall"
 	"time"
 )
 
@@ -28,7 +28,7 @@ func main() {
 	debugMode := flag.Bool("debug", false, "enables delve debugging")
 	delvePath := flag.String("delvePath", "/tmp/lambci_debug_files/dlv", "path to delve")
 	delvePort := flag.String("delvePort", "5985", "port to start delve server on")
-	delveAPI  := flag.String("delveAPI", "1", "delve api version")
+	delveAPI := flag.String("delveAPI", "1", "delve api version")
 	flag.Parse()
 	positionalArgs := flag.Args()
 	var handler string
@@ -89,11 +89,11 @@ func main() {
 			"--api-version=" + *delveAPI,
 			"--log",
 			"exec",
-			"/var/task/" + handler,
+			handler,
 		}
 		cmd = exec.Command(*delvePath, delveArgs...)
 	} else {
-		cmd = exec.Command("/var/task/" + handler)
+		cmd = exec.Command(handler)
 	}
 
 	cmd.Env = append(os.Environ(),
@@ -111,7 +111,10 @@ func main() {
 	}
 	cmd.Stdout = os.Stderr
 	cmd.Stderr = os.Stderr
-	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+
+	// if runtime.GOOS != "windows" {
+	// 	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+	// }
 
 	var err error
 
@@ -122,7 +125,9 @@ func main() {
 
 	mockContext.Pid = cmd.Process.Pid
 
-	defer syscall.Kill(-mockContext.Pid, syscall.SIGKILL)
+	// if runtime.GOOS != "windows" {
+	// 	defer syscall.Kill(-mockContext.Pid, syscall.SIGKILL)
+	// }
 
 	var conn net.Conn
 	for {
